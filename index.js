@@ -148,6 +148,13 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/about/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const result = await aboutCollection.findOne(filter);
+      res.send(result)
+    })
+
     app.put('/about/:id', async(req, res)=>{
       const id = req.params.id;
       const filter = {_id: new ObjectId(id)};
@@ -156,12 +163,22 @@ async function run() {
       const options = {upsert: true};
           const updateAboutItem = {
             $set: {
-              name: newAboutItem.name,
               title: newAboutItem.title,
+              subtitle: newAboutItem.subtitle,
+              managementName: newAboutItem.managementName,
+              position: newAboutItem.position,
+              managmentdescription: newAboutItem.managmentdescription,
+              missionDescription: newAboutItem.missionDescription,
+              vissionDescription: newAboutItem.vissionDescription,
+              teamName: newAboutItem.teamName,
+              teamPosition: newAboutItem.teamPosition,
+              image:newAboutItem.image,
+              description: newAboutItem.r,
+              teamDescriptions: newAboutItem.teamDescriptions
         }
       }
 
-      const services = await serviceCollection.updateOne(filter, updateAboutItem, options)
+      const services = await aboutCollection.updateOne(filter, updateAboutItem, options)
       res.send(services)
     })
 
