@@ -82,10 +82,19 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/singleservices/:id', async(req, res)=>{
+    app.get('/single/services/:id', async(req, res)=>{
       const id = req.params.id;
+      console.log(id)
       const filter = {_id: new ObjectId(id)}
       const result = await singleServiceCollection.findOne(filter);
+      res.send(result)
+    })
+
+    app.post('/seo', async(req, res)=>{
+      const {name} = req.body
+      const filter = {name}
+      const result = await aboutCollection.findOne({filter});
+      console.log(result)
       res.send(result)
     })
 
