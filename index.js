@@ -31,7 +31,7 @@ async function run() {
 
     // services related api
     app.get("/services", async (req, res) => {
-      const service = await serviceCollection.find().toArray();
+      const service = await serviceCollection.find().limit(5).toArray();
       res.send(service);
     });
 
@@ -77,39 +77,37 @@ async function run() {
       res.send(services)
     })
 //  signle services api 
-    app.get('/singleservices', async(req, res)=>{
-      const result = await singleServiceCollection.find().toArray();
+    app.get('/singleServices', async(req, res)=>{
+      const result = await singleServiceCollection.find().limit(5).toArray();
       res.send(result)
     })
 
-    app.get('/single/services/:id', async(req, res)=>{
+    app.get('/singleServices/:id', async(req, res)=>{
       const id = req.params.id;
-      console.log(id)
       const filter = {_id: new ObjectId(id)}
       const result = await singleServiceCollection.findOne(filter);
       res.send(result)
     })
 
-    app.post('/seo', async(req, res)=>{
-      const {name} = req.body
-      const filter = {name}
-      const result = await aboutCollection.findOne({filter});
-      console.log(result)
-      res.send(result)
-    })
-
-    app.post('/singleservices', async(req, res)=>{
+    app.post('/singleServices', async(req, res)=>{
       const service = req.body;
       const result = await singleServiceCollection.insertOne(service);
       res.send(result)
     })
-    app.put('/singleservices/:id', async(req, res)=>{
+    app.get('/singleservices/:id', async(req, res)=>{
+      const service = req.body;
+      const result = await singleServiceCollection.findOne(service);
+      res.send(result)
+    })
+    app.put('/singleServices/:id', async(req, res)=>{
       const id = req.params.id;
       const filter = {_id: new ObjectId(id)}
       const newSingleServices = req.body;
+      console.log(newSingleServices)
       const options = {upsert: true};
           const updatedSingleServices = {
             $set: {
+              name: newSingleServices.name,
               category: newSingleServices.category,
               title: newSingleServices.title,
               subtitle: newSingleServices.subtitle,
