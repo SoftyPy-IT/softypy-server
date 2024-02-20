@@ -30,6 +30,7 @@ async function run() {
     const singleServiceCollection = client.db("softypy").collection("singleServices");
     const reviewCollection = client.db("softypy").collection("reviews");
     const packageCollection = client.db("softypy").collection("packages");
+    const portfolioCollection = client.db("softypy").collection("portfolio");
 
     // services related api
     app.get("/services", async (req, res) => {
@@ -228,7 +229,71 @@ async function run() {
       res.send(result)
 
     })
+    app.put('/packages/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const newService = req.body;
+      console.log(newService)
+      const options = {upsert: true};
+          const updatedService = {
+            $set: {
+              name: newService.name,
+              title: newService.title,
+              subtitle: newService.subtitle,
+              topservicetitle: newService.topservicetitle,
+              topserviceDescription: newService.topserviceDescription,
+              whatWedoDescription: newService.whatWedoDescription,
+              productsDescription: newService.productsDescription,
+              image: newService.image,
+              description: newService.description
+        }
+      }
 
+      const services = await portfolioCollection.updateOne(filter, updatedService, options)
+      res.send(services)
+    })
+
+    // portfolio api 
+    app.get('/portfolio', async(req, res)=>{
+      const result = await portfolioCollection.find().toArray();
+      res.send(result);
+    })
+    app.post('/portfolio', async(req, res)=>{
+      const portfolio = req.body;
+      console.log(portfolio)
+      const result = await portfolioCollection.insertOne(portfolio);
+      res.send(result)
+    })
+    app.delete('/portfolio/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const result = await portfolioCollection.deleteOne(filter);
+      res.send(result)
+
+    })
+    app.put('/portfolio/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const newService = req.body;
+      console.log(newService)
+      const options = {upsert: true};
+          const updatedService = {
+            $set: {
+              name: newService.name,
+              title: newService.title,
+              subtitle: newService.subtitle,
+              topservicetitle: newService.topservicetitle,
+              topserviceDescription: newService.topserviceDescription,
+              whatWedoDescription: newService.whatWedoDescription,
+              productsDescription: newService.productsDescription,
+              image: newService.image,
+              description: newService.description
+        }
+      }
+
+      const services = await portfolioCollection.updateOne(filter, updatedService, options)
+      res.send(services)
+    })
 
 
 
