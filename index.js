@@ -28,6 +28,7 @@ async function run() {
     const ordersCollection = client.db("softypy").collection("orders");
     const aboutCollection = client.db("softypy").collection("about");
     const singleServiceCollection = client.db("softypy").collection("singleServices");
+    const reviewCollection = client.db("softypy").collection("reviews");
 
     // services related api
     app.get("/services", async (req, res) => {
@@ -137,6 +138,24 @@ async function run() {
       const user = req.body;
       const result = await ordersCollection.insertOne(user);
       res.send(result)
+    })
+    // review
+    app.get('/reviews', async(req, res)=>{
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    })
+    app.post('/reviews', async(req, res)=>{
+      const reviews = req.body;
+      console.log(reviews)
+      const result = await reviewCollection.insertOne(reviews);
+      res.send(result)
+    })
+    app.delete('/reviews/:id', async(req, res)=>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const result = await reviewCollection.deleteOne(filter);
+      res.send(result)
+
     })
     // about content related api
     app.post('/about', async(req, res)=>{
