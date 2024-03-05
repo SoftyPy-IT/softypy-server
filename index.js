@@ -5,6 +5,10 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 const http = require("http");
 const { Server } = require("socket.io");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -13,8 +17,8 @@ const server = http.createServer(app);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-const uri = `mongodb://localhost:27017/softypy`;
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
+// const uri = `mongodb://localhost:27017/softypy`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -66,6 +70,7 @@ async function run() {
       .db("softypy")
       .collection("conversation");
     const messageCollection = client.db("softypy").collection("message");
+    const userCollection = client.db("softypy").collection("users");
 
     // services related api
     app.get("/services", async (req, res) => {
@@ -350,6 +355,67 @@ async function run() {
       res.send(services);
     });
 
+
+
+        // User Registration
+        app.post("/register", async (req, res) => {
+          console.log(req.body);
+          const { name, email, password, role } = req.body;
+    
+          // Check if email already exists
+          const existingUser = await userCollection.findOne({ email });
+          if (existingUser) {
+            return res.status(400).json({
+              success: false,
+              message: "User already exists",
+            });
+          }
+    
+          // Hash the password
+          const hashedPassword = await bcrypt.hash(password, 10);
+    
+          // Insert user into the database
+          await userCollection.insertOne({ name, email, password: hashedPassword, role });
+    
+          res.status(201).json({
+            success: true,
+            message: "User registered successfully",
+          });
+        });
+    
+        // User Login
+        app.post("/login", async (req, res) => {
+          console.log(req.body);
+          const { email, password } = req.body;
+    
+          // Find user by email
+          const user = await userCollection.findOne({ email });
+          if (!user) {
+            return res.status(401).json({ message: "Invalid email or password" });
+          }
+    
+          // Compare hashed password
+          const isPasswordValid = await bcrypt.compare(password, user.password);
+          if (!isPasswordValid) {
+            return res.status(401).json({ message: "Invalid email or password" });
+          }
+    
+          // Generate JWT token
+          const token = jwt.sign({ email: user }, process.env.JWT_SECRET, {
+            expiresIn: process.env.EXPIRES_IN,
+          });
+    
+          res.json({
+            success: true,
+            message: "Login successful",
+            token,
+            email,
+          });
+        });
+
+
+
+
     // conversation
     app.post("/conversation", async (req, res) => {
       const newConversation = {
@@ -412,7 +478,7 @@ async function run() {
         const uniqueSenderIds = await messageCollection
           .aggregate([
             {
-              $sort: { fieldName: -1 } // Sort messages within each group by fieldName in descending order
+              $sort: { fieldName: -1 }, // Sort messages within each group by fieldName in descending order
             },
             {
               $group: {
@@ -455,7 +521,7 @@ async function run() {
 
     app.delete("/message/:senderId", async (req, res) => {
       try {
-        const senderId  = req.params.senderId;
+        const senderId = req.params.senderId;
         const messages = await messageCollection.deleteMany({ senderId });
 
         res.status(200).json(messages);
