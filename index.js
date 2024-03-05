@@ -382,7 +382,10 @@ async function run() {
             message: "User registered successfully",
           });
         });
-    
+        app.get("/register", async (req, res) => {
+          const result = await userCollection.find().toArray();
+          res.send(result);
+        });
         // User Login
         app.post("/login", async (req, res) => {
           console.log(req.body);
