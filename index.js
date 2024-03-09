@@ -3,11 +3,12 @@ const app = express();
 const cors = require("cors");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
+
 const http = require("http");
 const { Server } = require("socket.io");
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
 
 // middleware
 app.use(cors());
@@ -17,8 +18,8 @@ const server = http.createServer(app);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-// const uri = `mongodb://localhost:27017/softypy`;
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb://localhost:27017/softypy`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -31,7 +32,7 @@ const client = new MongoClient(uri, {
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173/",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
   },
 });
@@ -40,13 +41,14 @@ io.on("connection", (socket) => {
   console.log("socket.id", socket.id);
 
   socket.on("set-user", (getReceiverId) => {
+    console.log("getReceiverId", getReceiverId)
     socket.join(getReceiverId);
   });
 
   socket.on("send-message", async (message) => {
+    console.log(message)
     io.to(message.senderId).emit("received-message", message);
-    io.to(message.receiverId).emit("received-message", message); // Sender // Sender
-    // socket.broadcast.emit("notification", message);
+    io.to(message.receiverId).emit("received-message", message);
   });
 
   socket.on("disconnect", () => {
@@ -355,85 +357,85 @@ async function run() {
       res.send(services);
     });
 
+    // User Registration
+    app.post("/register", async (req, res) => {
+      console.log(req.body);
+      const { name, email, password, role } = req.body;
 
-
-        // User Registration
-        app.post("/register", async (req, res) => {
-          console.log(req.body);
-          const { name, email, password, role } = req.body;
-    
-          // Check if email already exists
-          const existingUser = await userCollection.findOne({ email });
-          if (existingUser) {
-            return res.status(400).json({
-              success: false,
-              message: "User already exists",
-            });
-          }
-    
-          // Hash the password
-          const hashedPassword = await bcrypt.hash(password, 10);
-    
-          // Insert user into the database
-          await userCollection.insertOne({ name, email, password: hashedPassword, role });
-    
-          res.status(201).json({
-            success: true,
-            message: "User registered successfully",
-          });
+      // Check if email already exists
+      const existingUser = await userCollection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists",
         });
-        app.get("/register", async (req, res) => {
-          const result = await userCollection.find().toArray();
-          res.send(result);
-        });
-        // User Login
-        app.post("/login", async (req, res) => {
-          console.log(req.body);
-          const { email, password } = req.body;
-    
-          // Find user by email
-          const user = await userCollection.findOne({ email });
-          if (!user) {
-            return res.status(401).json({ message: "Invalid email or password" });
-          }
-    
-          // Compare hashed password
-          const isPasswordValid = await bcrypt.compare(password, user.password);
-          if (!isPasswordValid) {
-            return res.status(401).json({ message: "Invalid email or password" });
-          }
-    
-          // Generate JWT token
-          const token = jwt.sign({ email: user }, process.env.JWT_SECRET, {
-            expiresIn: process.env.EXPIRES_IN,
-          });
-    
-          res.json({
-            success: true,
-            message: "Login successful",
-            token,
-            email,
-          });
-        });
+      }
 
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Insert user into the database
+      await userCollection.insertOne({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      });
 
+      res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+      });
+    });
+    app.get("/register", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+    // User Login
+    app.post("/login", async (req, res) => {
+      console.log(req.body);
+      const { email, password } = req.body;
+
+      // Find user by email
+      const user = await userCollection.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Compare hashed password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({ email: user }, process.env.JWT_SECRET, {
+        expiresIn: process.env.EXPIRES_IN,
+      });
+
+      res.json({
+        success: true,
+        message: "Login successful",
+        token,
+        email,
+      });
+    });
 
     // conversation
-    app.post("/conversation", async (req, res) => {
-      const newConversation = {
-        members: [req.body.senderId, req.body.receiverId],
-      };
+    // app.post("/conversation", async (req, res) => {
+    //   const newConversation = {
+    //     members: [req.body.senderId, req.body.receiverId],
+    //   };
 
-      try {
-        const savedConversation = await conversationCollection.insertOne(
-          newConversation
-        );
-        res.status(200).json(savedConversation); // ops[0] contains the inserted document
-      } catch (err) {
-        res.status(500).json(err);
-      }
-    });
+    //   try {
+    //     const savedConversation = await conversationCollection.insertOne(
+    //       newConversation
+    //     );
+    //     res.status(200).json(savedConversation); // ops[0] contains the inserted document
+    //   } catch (err) {
+    //     res.status(500).json(err);
+    //   }
+    // });
 
     //get conv of a user
 
@@ -476,17 +478,51 @@ async function run() {
         res.status(500).json(err);
       }
     });
+    // app.get("/message/all", async (req, res) => {
+    //   try {
+    //     const uniqueSenderIds = await messageCollection
+    //       .aggregate([
+    //         {
+    //           $sort: { _id: -1 },
+    //         },
+    //         {
+    //           $group: {
+    //             _id: "$senderId",
+    //             message: { $last: "$$ROOT" },
+    //           },
+    //         },
+    //       ])
+    //       .toArray();
+
+    //     res.status(200).json(uniqueSenderIds);
+    //   } catch (err) {
+    //     res.status(500).json({ error: err.message });
+    //   }
+    // });
+
     app.get("/message/all", async (req, res) => {
       try {
         const uniqueSenderIds = await messageCollection
           .aggregate([
             {
-              $sort: { fieldName: -1 }, // Sort messages within each group by fieldName in descending order
+              $match: {
+                senderId: { $regex: /^user/i }, // Match senderIds that start with "user"
+              },
+            },
+            {
+              $sort: { _id: -1 },
             },
             {
               $group: {
                 _id: "$senderId",
-                message: { $last: "$$ROOT" },
+                text: { $first: "$$ROOT" },
+              },
+            },
+            {
+              $project: {
+                _id: "$text.senderId",
+                senderId: "$text.senderId",
+                text: "$text.text",
               },
             },
           ])
@@ -544,8 +580,8 @@ app.get("/", (req, res) => {
   res.send("Softypy server is running now ");
 });
 
-app.listen(port, () => {
-  console.log("Softypy server is running now ");
+server.listen(port, () => {
+  console.log(`Softypy server is running now ${port}`);
 });
 client.on("error", console.error.bind(console, "MongoDB connection error:"));
 client.once("open", () => {
