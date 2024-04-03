@@ -144,6 +144,7 @@ async function run() {
 
     app.post("/singleServices", async (req, res) => {
       const service = req.body;
+      service.priority = parseInt(service.priority);
       const result = await singleServiceCollection.insertOne(service);
       res.send(result);
     });
@@ -152,31 +153,40 @@ async function run() {
       const result = await singleServiceCollection.findOne(service);
       res.send(result);
     });
-    app.put("/singleServices/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newSingleServices = req.body;
-      console.log(newSingleServices);
-      const options = { upsert: true };
-      const updatedSingleServices = {
-        $set: {
-          name: newSingleServices.name,
-          category: newSingleServices.category,
-          title: newSingleServices.title,
-          subtitle: newSingleServices.subtitle,
-          priority: newSingleServices.priority,
-          image: newSingleServices.image,
-          description: newSingleServices.description,
-        },
-      };
 
-      const services = await singleServiceCollection.updateOne(
-        filter,
-        updatedSingleServices,
-        options
-      );
-      res.send(services);
-    });
+
+ app.put("/singleServices/:id", async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) };
+  const newSingleServices = req.body;
+  
+  // Convert priority to number
+  newSingleServices.priority = parseInt(newSingleServices.priority);
+
+  console.log(newSingleServices);
+  const options = { upsert: true };
+  const updatedSingleServices = {
+    $set: {
+      name: newSingleServices.name,
+      category: newSingleServices.category,
+      title: newSingleServices.title,
+      subtitle: newSingleServices.subtitle,
+      priority: newSingleServices.priority,
+      image: newSingleServices.image,
+      description: newSingleServices.description,
+    },
+  };
+
+  const services = await singleServiceCollection.updateOne(
+    filter,
+    updatedSingleServices,
+    options
+  );
+  res.send(services);
+});
+
+
+
     app.delete("/singleservices/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
