@@ -16,9 +16,7 @@ app.use(express.json());
 
 const server = http.createServer(app);
 
-// cv upload 
-
-
+// cv upload
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
@@ -45,12 +43,12 @@ io.on("connection", (socket) => {
   console.log("socket.id", socket.id);
 
   socket.on("set-user", (getReceiverId) => {
-    console.log("getReceiverId", getReceiverId)
+    console.log("getReceiverId", getReceiverId);
     socket.join(getReceiverId);
   });
 
   socket.on("send-message", async (message) => {
-    console.log(message)
+    console.log(message);
     io.to(message.senderId).emit("received-message", message);
     io.to(message.receiverId).emit("received-message", message);
   });
@@ -129,7 +127,11 @@ async function run() {
     });
     //  signle services api
     app.get("/singleServices", async (req, res) => {
-      const result = await singleServiceCollection.find().sort({priority:1}).limit(5).toArray();
+      const result = await singleServiceCollection
+        .find()
+        .sort({ priority: 1 })
+        .limit(5)
+        .toArray();
       res.send(result);
     });
 
@@ -216,44 +218,43 @@ async function run() {
       res.send(result);
     });
 
-    // employee api 
-    // app.post("/employee", async (req, res) => {
-    //   const employee = req.body;
-    //   console.log(employee)
-    //   const result = await employeeCollection.insertOne(employee);
-    //   res.send(result);
-    // });
-  
-    const multer = require('multer');
+    const multer = require("multer");
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'upload');
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  },
-});
+    // Multer storage configuration
+    const storage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, "upload");
+      },
+      filename: function (req, file, cb) {
+        cb(null, file.originalname);
+      },
+    });
 
-const upload = multer({ storage: storage });
+    const upload = multer({ storage: storage });
 
-// Update the route to handle file uploads
-app.post("/employee", upload.single('cv'), async (req, res) => {
-  try {
-    const employee = req.body;
-    // Access uploaded file using req.file
-    console.log(req.file);
-    // Save employee data to database
-    const result = await employeeCollection.insertOne(employee);
-    res.send(result);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send('Internal server error');
-  }
-});
+    // Update the route to handle file uploads
+    app.post("/employee", upload.single("cv"), async (req, res) => {
+      try {
+        const employee = req.body;
+        console.log(req.file);
+        const result = await employeeCollection.insertOne(employee);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+        res.status(500).send("Internal server error");
+      }
+    });
 
-
+    app.get("/employee", async (req, res) => {
+      const result = await employeeCollection.find().toArray();
+      res.send(result);
+    });
+    app.delete("/employee/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await employeeCollection.deleteOne(filter);
+      res.send(result);
+    });
 
     // User Registration
     app.post("/register", async (req, res) => {
