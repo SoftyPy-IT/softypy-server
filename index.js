@@ -16,6 +16,10 @@ app.use(express.json());
 
 const server = http.createServer(app);
 
+// cv upload 
+
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 // const uri = `mongodb://localhost:27017/softypy`;
@@ -61,13 +65,11 @@ async function run() {
     await client.connect();
     const serviceCollection = client.db("softypy").collection("services");
     const ordersCollection = client.db("softypy").collection("orders");
-    const aboutCollection = client.db("softypy").collection("about");
+    const employeeCollection = client.db("softypy").collection("employee");
     const singleServiceCollection = client
       .db("softypy")
       .collection("singleServices");
     const reviewCollection = client.db("softypy").collection("reviews");
-    const packageCollection = client.db("softypy").collection("packages");
-    const portfolioCollection = client.db("softypy").collection("portfolio");
     const conversationCollection = client
       .db("softypy")
       .collection("conversation");
@@ -213,149 +215,45 @@ async function run() {
       const result = await reviewCollection.deleteOne(filter);
       res.send(result);
     });
-    // about content related api
-    app.post("/about", async (req, res) => {
-      const about = req.body;
-      const result = await aboutCollection.insertOne(about);
-      res.send(result);
-    });
-    app.get("/about", async (req, res) => {
-      const result = await aboutCollection.find().toArray();
-      res.send(result);
-    });
-    app.delete("/about/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await aboutCollection.deleteOne(filter);
-      res.send(result);
-    });
 
-    app.get("/about/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await aboutCollection.findOne(filter);
-      res.send(result);
-    });
+    // employee api 
+    // app.post("/employee", async (req, res) => {
+    //   const employee = req.body;
+    //   console.log(employee)
+    //   const result = await employeeCollection.insertOne(employee);
+    //   res.send(result);
+    // });
+  
+    const multer = require('multer');
 
-    app.put("/about/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newAboutItem = req.body;
-      console.log(newAboutItem);
-      const options = { upsert: true };
-      const updateAboutItem = {
-        $set: {
-          title: newAboutItem.title,
-          subtitle: newAboutItem.subtitle,
-          managementName: newAboutItem.managementName,
-          position: newAboutItem.position,
-          managmentdescription: newAboutItem.managmentdescription,
-          missionDescription: newAboutItem.missionDescription,
-          vissionDescription: newAboutItem.vissionDescription,
-          teamName: newAboutItem.teamName,
-          teamPosition: newAboutItem.teamPosition,
-          image: newAboutItem.image,
-          description: newAboutItem.r,
-          teamDescriptions: newAboutItem.teamDescriptions,
-        },
-      };
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'upload');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
 
-      const services = await aboutCollection.updateOne(
-        filter,
-        updateAboutItem,
-        options
-      );
-      res.send(services);
-    });
+const upload = multer({ storage: storage });
 
-    // package api
-    app.get("/packages", async (req, res) => {
-      const result = await packageCollection.find().toArray();
-      res.send(result);
-    });
-    app.post("/packages", async (req, res) => {
-      const package = req.body;
-      const result = await packageCollection.insertOne(package);
-      res.send(result);
-    });
-    app.delete("/packages/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await packageCollection.deleteOne(filter);
-      res.send(result);
-    });
-    app.put("/packages/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newService = req.body;
-      console.log(newService);
-      const options = { upsert: true };
-      const updatedService = {
-        $set: {
-          name: newService.name,
-          title: newService.title,
-          subtitle: newService.subtitle,
-          topservicetitle: newService.topservicetitle,
-          topserviceDescription: newService.topserviceDescription,
-          whatWedoDescription: newService.whatWedoDescription,
-          productsDescription: newService.productsDescription,
-          image: newService.image,
-          description: newService.description,
-        },
-      };
+// Update the route to handle file uploads
+app.post("/employee", upload.single('cv'), async (req, res) => {
+  try {
+    const employee = req.body;
+    // Access uploaded file using req.file
+    console.log(req.file);
+    // Save employee data to database
+    const result = await employeeCollection.insertOne(employee);
+    res.send(result);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal server error');
+  }
+});
 
-      const services = await portfolioCollection.updateOne(
-        filter,
-        updatedService,
-        options
-      );
-      res.send(services);
-    });
 
-    // portfolio api
-    app.get("/portfolio", async (req, res) => {
-      const result = await portfolioCollection.find().toArray();
-      res.send(result);
-    });
-    app.post("/portfolio", async (req, res) => {
-      const portfolio = req.body;
-      console.log(portfolio);
-      const result = await portfolioCollection.insertOne(portfolio);
-      res.send(result);
-    });
-    app.delete("/portfolio/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await portfolioCollection.deleteOne(filter);
-      res.send(result);
-    });
-    app.put("/portfolio/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newService = req.body;
-      console.log(newService);
-      const options = { upsert: true };
-      const updatedService = {
-        $set: {
-          name: newService.name,
-          title: newService.title,
-          subtitle: newService.subtitle,
-          topservicetitle: newService.topservicetitle,
-          topserviceDescription: newService.topserviceDescription,
-          whatWedoDescription: newService.whatWedoDescription,
-          productsDescription: newService.productsDescription,
-          image: newService.image,
-          description: newService.description,
-        },
-      };
-
-      const services = await portfolioCollection.updateOne(
-        filter,
-        updatedService,
-        options
-      );
-      res.send(services);
-    });
 
     // User Registration
     app.post("/register", async (req, res) => {
