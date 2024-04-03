@@ -164,6 +164,7 @@ async function run() {
           category: newSingleServices.category,
           title: newSingleServices.title,
           subtitle: newSingleServices.subtitle,
+          priority: newSingleServices.priority,
           image: newSingleServices.image,
           description: newSingleServices.description,
         },
