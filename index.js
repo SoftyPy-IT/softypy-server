@@ -127,7 +127,7 @@ async function run() {
     });
     //  signle services api
     app.get("/singleServices", async (req, res) => {
-      const result = await singleServiceCollection.find().limit(5).toArray();
+      const result = await singleServiceCollection.find().sort({priority:1}).limit(5).toArray();
       res.send(result);
     });
 
