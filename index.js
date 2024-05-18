@@ -197,40 +197,10 @@ async function run() {
       const result = await singleServiceCollection.findOne(service);
       res.send(result);
     });
-    app.put("/singleServices/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        const newSingleServices = req.body;
-    
-        const updatedSingleServices = {
-          $set: {
-            name: newSingleServices.name,
-            category: newSingleServices.category,
-            title: newSingleServices.title,
-            subtitle: newSingleServices.subtitle,
-            image: newSingleServices.image,
-            description: newSingleServices.description,
-            priority: newSingleServices.priority, // Include priority if it's part of the update
-          },
-        };
-    
-        const result = await singleServiceCollection.updateOne(filter, updatedSingleServices, { upsert: true });
-    
-        if (result.matchedCount === 0) {
-          return res.status(404).send({ message: "Service not found" });
-        }
-    
-        res.send({ message: "Service updated successfully", result });
-      } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-      }
-    });
+  
 
     
 
-    // app.put("/singleServices/:id", async (req, res) => {
     //   const id = req.params.id;
     //   const filter = { _id: new ObjectId(id) };
     //   const newSingleServices = req.body;
