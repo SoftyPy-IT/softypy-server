@@ -118,6 +118,7 @@ async function run() {
         },
       };
 
+
       const services = await serviceCollection.updateOne(
         filter,
         updatedService,
@@ -126,10 +127,57 @@ async function run() {
       res.send(services);
     });
     //  signle services api
+    // app.get("/singleServices", async (req, res) => {
+    //   console.log(req.query)
+    //   const result = await singleServiceCollection.find().limit(5).toArray();
+    //   const serviceWithNumericPriority = result.map(service=>({
+    //     ...service,
+    //     priority: Number(service.priority)
+    //   }))
+    //   console.log(serviceWithNumericPriority)
+
+    //   res.send(serviceWithNumericPriority);
+    // });
+
+
     app.get("/singleServices", async (req, res) => {
-      const result = await singleServiceCollection.find().limit(5).toArray();
-      res.send(result);
+      try {
+        const page = parseInt(req.query.page) || 1; 
+        const limit = parseInt(req.query.limit) || 5; 
+    
+        // Calculate the number of documents to skip
+        const skip = (page - 1) * limit;
+    
+        // Fetch the results with pagination
+        const result = await singleServiceCollection.find().skip(skip).limit(limit).toArray();
+    
+        // Convert priority from string to number
+        const servicesWithNumericPriority = result.map(service => ({
+          ...service,
+          priority: Number(service.priority)
+        }));
+    
+        // Get the total count of documents
+        const total = await singleServiceCollection.countDocuments();
+    
+        // Calculate the total number of pages
+        const totalPages = Math.ceil(total / limit);
+    
+        // Send the paginated result along with metadata
+        res.send({
+          total,
+          page,
+          totalPages,
+          limit,
+          services: servicesWithNumericPriority
+        });
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
     });
+
+    
 
     app.get("/singleServices/:id", async (req, res) => {
       const id = req.params.id;
@@ -140,6 +188,7 @@ async function run() {
 
     app.post("/singleServices", async (req, res) => {
       const service = req.body;
+      console.log(service)
       const result = await singleServiceCollection.insertOne(service);
       res.send(result);
     });
@@ -149,29 +198,62 @@ async function run() {
       res.send(result);
     });
     app.put("/singleServices/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newSingleServices = req.body;
-      console.log(newSingleServices);
-      const options = { upsert: true };
-      const updatedSingleServices = {
-        $set: {
-          name: newSingleServices.name,
-          category: newSingleServices.category,
-          title: newSingleServices.title,
-          subtitle: newSingleServices.subtitle,
-          image: newSingleServices.image,
-          description: newSingleServices.description,
-        },
-      };
-
-      const services = await singleServiceCollection.updateOne(
-        filter,
-        updatedSingleServices,
-        options
-      );
-      res.send(services);
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newSingleServices = req.body;
+    
+        const updatedSingleServices = {
+          $set: {
+            name: newSingleServices.name,
+            category: newSingleServices.category,
+            title: newSingleServices.title,
+            subtitle: newSingleServices.subtitle,
+            image: newSingleServices.image,
+            description: newSingleServices.description,
+            priority: newSingleServices.priority, // Include priority if it's part of the update
+          },
+        };
+    
+        const result = await singleServiceCollection.updateOne(filter, updatedSingleServices, { upsert: true });
+    
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Service not found" });
+        }
+    
+        res.send({ message: "Service updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
     });
+
+    
+
+    // app.put("/singleServices/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const newSingleServices = req.body;
+    //   console.log(newSingleServices);
+    //   const options = { upsert: true };
+    //   const updatedSingleServices = {
+    //     $set: {
+    //       name: newSingleServices.name,
+    //       category: newSingleServices.category,
+    //       title: newSingleServices.title,
+    //       subtitle: newSingleServices.subtitle,
+    //       image: newSingleServices.image,
+    //       description: newSingleServices.description,
+    //     },
+    //   };
+
+    //   const services = await singleServiceCollection.updateOne(
+    //     filter,
+    //     updatedSingleServices,
+    //     options
+    //   );
+    //   res.send(services);
+    // });
     app.delete("/singleservices/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -201,6 +283,8 @@ async function run() {
       const result = await reviewCollection.find().toArray();
       res.send(result);
     });
+
+
     app.post("/reviews", async (req, res) => {
       const reviews = req.body;
       console.log(reviews);
@@ -213,6 +297,31 @@ async function run() {
       const result = await reviewCollection.deleteOne(filter);
       res.send(result);
     });
+    app.put("/reviews/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newReview = req.body;
+    
+        const updatedSingleServices = {
+          $set: {
+            name: newReview.name, // Include priority if it's part of the update
+          },
+        };
+    
+        const result = await singleServiceCollection.updateOne(filter, updatedSingleServices, { upsert: true });
+    
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Service not found" });
+        }
+    
+        res.send({ message: "Service updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     // about content related api
     app.post("/about", async (req, res) => {
       const about = req.body;
@@ -311,51 +420,7 @@ async function run() {
       );
       res.send(services);
     });
-
-    // portfolio api
-    app.get("/portfolio", async (req, res) => {
-      const result = await portfolioCollection.find().toArray();
-      res.send(result);
-    });
-    app.post("/portfolio", async (req, res) => {
-      const portfolio = req.body;
-      console.log(portfolio);
-      const result = await portfolioCollection.insertOne(portfolio);
-      res.send(result);
-    });
-    app.delete("/portfolio/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await portfolioCollection.deleteOne(filter);
-      res.send(result);
-    });
-    app.put("/portfolio/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newService = req.body;
-      console.log(newService);
-      const options = { upsert: true };
-      const updatedService = {
-        $set: {
-          name: newService.name,
-          title: newService.title,
-          subtitle: newService.subtitle,
-          topservicetitle: newService.topservicetitle,
-          topserviceDescription: newService.topserviceDescription,
-          whatWedoDescription: newService.whatWedoDescription,
-          productsDescription: newService.productsDescription,
-          image: newService.image,
-          description: newService.description,
-        },
-      };
-
-      const services = await portfolioCollection.updateOne(
-        filter,
-        updatedService,
-        options
-      );
-      res.send(services);
-    });
+ 
 
     // User Registration
     app.post("/register", async (req, res) => {
