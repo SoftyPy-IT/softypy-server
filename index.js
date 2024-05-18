@@ -282,51 +282,26 @@ async function run() {
 
     // review api
     app.get("/reviews", async (req, res) => {
-      const result = await reviewCollection.find().toArray();
-      res.send(result);
-    });
-    app.get("/singleServices", async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const search = req.query.search || "";
+    
       try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
-
-        // Calculate the number of documents to skip
-        const skip = (page - 1) * limit;
-
-        // Fetch the results with pagination
-        const result = await singleServiceCollection
-          .find()
-          .skip(skip)
-          .limit(limit)
-          .toArray();
-
-        // Convert priority from string to number
-        const servicesWithNumericPriority = result.map((service) => ({
-          ...service,
-          priority: Number(service.priority),
-        }));
-
-        // Get the total count of documents
-        const total = await singleServiceCollection.countDocuments();
-
-        // Calculate the total number of pages
-        const totalPages = Math.ceil(total / limit);
-
-        // Send the paginated result along with metadata
-        res.send({
-          total,
-          page,
-          totalPages,
-          limit,
-          services: servicesWithNumericPriority,
-        });
+        const query = search
+          ? { $or: [{ name: new RegExp(search, "i") }, { title: new RegExp(search, "i") }] }
+          : {};
+    
+        const total = await reviewCollection.countDocuments(query);
+        const reviews = await reviewCollection.find(query).skip(skip).limit(limit).toArray();
+        res.send({ total, reviews, page, pages: Math.ceil(total / limit) });
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error(error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
-
-
+    
+    
        
     app.get("/reviews/:id", async (req, res) => {
       const review = req.body;
