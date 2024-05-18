@@ -41,12 +41,12 @@ io.on("connection", (socket) => {
   console.log("socket.id", socket.id);
 
   socket.on("set-user", (getReceiverId) => {
-    console.log("getReceiverId", getReceiverId)
+    console.log("getReceiverId", getReceiverId);
     socket.join(getReceiverId);
   });
 
   socket.on("send-message", async (message) => {
-    console.log(message)
+    console.log(message);
     io.to(message.senderId).emit("received-message", message);
     io.to(message.receiverId).emit("received-message", message);
   });
@@ -118,7 +118,6 @@ async function run() {
         },
       };
 
-
       const services = await serviceCollection.updateOne(
         filter,
         updatedService,
@@ -139,45 +138,46 @@ async function run() {
     //   res.send(serviceWithNumericPriority);
     // });
 
-
     app.get("/singleServices", async (req, res) => {
       try {
-        const page = parseInt(req.query.page) || 1; 
-        const limit = parseInt(req.query.limit) || 5; 
-    
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+
         // Calculate the number of documents to skip
         const skip = (page - 1) * limit;
-    
+
         // Fetch the results with pagination
-        const result = await singleServiceCollection.find().skip(skip).limit(limit).toArray();
-    
+        const result = await singleServiceCollection
+          .find()
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
         // Convert priority from string to number
-        const servicesWithNumericPriority = result.map(service => ({
+        const servicesWithNumericPriority = result.map((service) => ({
           ...service,
-          priority: Number(service.priority)
+          priority: Number(service.priority),
         }));
-    
+
         // Get the total count of documents
         const total = await singleServiceCollection.countDocuments();
-    
+
         // Calculate the total number of pages
         const totalPages = Math.ceil(total / limit);
-    
+
         // Send the paginated result along with metadata
         res.send({
           total,
           page,
           totalPages,
           limit,
-          services: servicesWithNumericPriority
+          services: servicesWithNumericPriority,
         });
       } catch (error) {
         console.error("Error fetching services:", error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
-
-    
 
     app.get("/singleServices/:id", async (req, res) => {
       const id = req.params.id;
@@ -188,7 +188,7 @@ async function run() {
 
     app.post("/singleServices", async (req, res) => {
       const service = req.body;
-      console.log(service)
+      console.log(service);
       const result = await singleServiceCollection.insertOne(service);
       res.send(result);
     });
@@ -197,9 +197,41 @@ async function run() {
       const result = await singleServiceCollection.findOne(service);
       res.send(result);
     });
-  
 
-    
+    app.put("/singleServices/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newSingleServices = req.body;
+
+        const updatedSingleServices = {
+          $set: {
+            name: newSingleServices.name,
+            category: newSingleServices.category,
+            title: newSingleServices.title,
+            subtitle: newSingleServices.subtitle,
+            image: newSingleServices.image,
+            description: newSingleServices.description,
+            priority: newSingleServices.priority, // Include priority if it's part of the update
+          },
+        };
+
+        const result = await singleServiceCollection.updateOne(
+          filter,
+          updatedSingleServices,
+          { upsert: true }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Service not found" });
+        }
+
+        res.send({ message: "Service updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
 
     //   const id = req.params.id;
     //   const filter = { _id: new ObjectId(id) };
@@ -253,8 +285,61 @@ async function run() {
       const result = await reviewCollection.find().toArray();
       res.send(result);
     });
+    app.get("/singleServices", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+
+        // Calculate the number of documents to skip
+        const skip = (page - 1) * limit;
+
+        // Fetch the results with pagination
+        const result = await singleServiceCollection
+          .find()
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        // Convert priority from string to number
+        const servicesWithNumericPriority = result.map((service) => ({
+          ...service,
+          priority: Number(service.priority),
+        }));
+
+        // Get the total count of documents
+        const total = await singleServiceCollection.countDocuments();
+
+        // Calculate the total number of pages
+        const totalPages = Math.ceil(total / limit);
+
+        // Send the paginated result along with metadata
+        res.send({
+          total,
+          page,
+          totalPages,
+          limit,
+          services: servicesWithNumericPriority,
+        });
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
 
 
+       
+    app.get("/reviews/:id", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.findOne(review);
+      res.send(result);
+    });
+
+    app.post("/reviews", async (req, res) => {
+      const reviews = req.body;
+      console.log(reviews);
+      const result = await reviewCollection.insertOne(reviews);
+      res.send(result);
+    });
     app.post("/reviews", async (req, res) => {
       const reviews = req.body;
       console.log(reviews);
@@ -267,30 +352,38 @@ async function run() {
       const result = await reviewCollection.deleteOne(filter);
       res.send(result);
     });
+
     app.put("/reviews/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
         const newReview = req.body;
     
-        const updatedSingleServices = {
+        const updateReview = {
           $set: {
-            name: newReview.name, // Include priority if it's part of the update
+            name: newReview.name,
+            title: newReview.title,
+            description: newReview.description,
+            image: newReview.image,
+            videoUrl: newReview.videoUrl,
           },
         };
     
-        const result = await singleServiceCollection.updateOne(filter, updatedSingleServices, { upsert: true });
+        const result = await reviewCollection.updateOne(filter, updateReview, {
+          upsert: true,
+        });
     
         if (result.matchedCount === 0) {
-          return res.status(404).send({ message: "Service not found" });
+          return res.status(404).send({ message: "Review not found" });
         }
     
-        res.send({ message: "Service updated successfully", result });
+        res.send({ message: "Review updated successfully", result });
       } catch (error) {
         console.error(error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+    
 
     // about content related api
     app.post("/about", async (req, res) => {
@@ -390,7 +483,6 @@ async function run() {
       );
       res.send(services);
     });
- 
 
     // User Registration
     app.post("/register", async (req, res) => {
@@ -456,52 +548,6 @@ async function run() {
       });
     });
 
-    // conversation
-    // app.post("/conversation", async (req, res) => {
-    //   const newConversation = {
-    //     members: [req.body.senderId, req.body.receiverId],
-    //   };
-
-    //   try {
-    //     const savedConversation = await conversationCollection.insertOne(
-    //       newConversation
-    //     );
-    //     res.status(200).json(savedConversation); // ops[0] contains the inserted document
-    //   } catch (err) {
-    //     res.status(500).json(err);
-    //   }
-    // });
-
-    //get conv of a user
-
-    // app.get("/conversation/:userId", async (req, res) => {
-    //   try {
-    //     const conversation = await conversationCollection
-    //       .find({
-    //         members: { $in: [req.params.userId] },
-    //       })
-    //       .toArray();
-    //     console.log(conversation);
-    //     res.status(200).json(conversation);
-    //   } catch (err) {
-    //     res.status(500).json(err);
-    //   }
-    // });
-
-    // // get conv includes two userId
-
-    // app.get("/find/:firstUserId/:secondUserId", async (req, res) => {
-    //   try {
-    //     const conversation = await conversationCollection.findOne({
-    //       members: { $all: [req.params.firstUserId, req.params.secondUserId] },
-    //     });
-    //     res.status(200).json(conversation);
-    //   } catch (err) {
-    //     res.status(500).json(err);
-    //   }
-    // });
-
-    // message start
 
     app.post("/message", async (req, res) => {
       const newMessage = req.body;
@@ -513,27 +559,7 @@ async function run() {
         res.status(500).json(err);
       }
     });
-    // app.get("/message/all", async (req, res) => {
-    //   try {
-    //     const uniqueSenderIds = await messageCollection
-    //       .aggregate([
-    //         {
-    //           $sort: { _id: -1 },
-    //         },
-    //         {
-    //           $group: {
-    //             _id: "$senderId",
-    //             message: { $last: "$$ROOT" },
-    //           },
-    //         },
-    //       ])
-    //       .toArray();
-
-    //     res.status(200).json(uniqueSenderIds);
-    //   } catch (err) {
-    //     res.status(500).json({ error: err.message });
-    //   }
-    // });
+   
 
     app.get("/message/all", async (req, res) => {
       try {
