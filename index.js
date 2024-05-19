@@ -126,7 +126,6 @@ async function run() {
       res.send(services);
     });
 
-
     app.get("/singleServices", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -270,58 +269,63 @@ async function run() {
     });
 
     // review api
-// Assuming you have the necessary imports and setup for Express and MongoDB
+    // Assuming you have the necessary imports and setup for Express and MongoDB
 
-app.get("/reviews", async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 5 ;
-  const skip = (page - 1 ) * limit;
-  const result = await reviewCollection.find().skip(skip).limit(limit).toArray()
-  const total = await reviewCollection.countDocuments();
-  const totalPages = Math.ceil(total/limit);
+    app.get("/reviews", async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 5;
+      const skip = (page - 1) * limit;
+      const result = await reviewCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+      const total = await reviewCollection.countDocuments();
+      const totalPages = Math.ceil(total / limit);
 
-  res.send({
-    total,page,totalPages, limit, reviews: result
-  })
-  
-});
-app.get("/singleServices", async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
-    const result = await singleServiceCollection
-      .find()
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-    const servicesWithNumericPriority = result.map((service) => ({
-      ...service,
-      priority: Number(service.priority),
-    }));
-
-    // Get the total count of documents
-    const total = await singleServiceCollection.countDocuments();
-
-    // Calculate the total number of pages
-    const totalPages = Math.ceil(total / limit);
-
-    // Send the paginated result along with metadata
-    res.send({
-      total,
-      page,
-      totalPages,
-      limit,
-      services: servicesWithNumericPriority,
+      res.send({
+        total,
+        page,
+        totalPages,
+        limit,
+        reviews: result,
+      });
     });
-  } catch (error) {
-    console.error("Error fetching services:", error);
-    res.status(500).send({ message: "Internal Server Error" });
-  }
-});
+    app.get("/singleServices", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1) * limit;
+        const result = await singleServiceCollection
+          .find()
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+        const servicesWithNumericPriority = result.map((service) => ({
+          ...service,
+          priority: Number(service.priority),
+        }));
 
-    
-       
+        // Get the total count of documents
+        const total = await singleServiceCollection.countDocuments();
+
+        // Calculate the total number of pages
+        const totalPages = Math.ceil(total / limit);
+
+        // Send the paginated result along with metadata
+        res.send({
+          total,
+          page,
+          totalPages,
+          limit,
+          services: servicesWithNumericPriority,
+        });
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     app.get("/reviews/:id", async (req, res) => {
       const review = req.body;
       const result = await reviewCollection.findOne(review);
@@ -352,7 +356,7 @@ app.get("/singleServices", async (req, res) => {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
         const newReview = req.body;
-    
+
         const updateReview = {
           $set: {
             name: newReview.name,
@@ -362,22 +366,21 @@ app.get("/singleServices", async (req, res) => {
             videoUrl: newReview.videoUrl,
           },
         };
-    
+
         const result = await reviewCollection.updateOne(filter, updateReview, {
           upsert: true,
         });
-    
+
         if (result.matchedCount === 0) {
           return res.status(404).send({ message: "Review not found" });
         }
-    
+
         res.send({ message: "Review updated successfully", result });
       } catch (error) {
         console.error(error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
-    
 
     // about content related api
     app.post("/portfolio", async (req, res) => {
@@ -385,10 +388,51 @@ app.get("/singleServices", async (req, res) => {
       const result = await portfolioCollection.insertOne(about);
       res.send(result);
     });
+
+
     app.get("/portfolio", async (req, res) => {
-      const result = await portfolioCollection.find().toArray();
-      res.send(result);
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || "";
+        const skip = (page - 1) * limit;
+    
+        const query = search
+          ? {
+              $or: [
+                { title: { $regex: search, $options: "i" } },
+                { category: { $regex: search, $options: "i" } },
+              ],
+            }
+          : {};
+    
+        const result = await portfolioCollection
+          .find(query)
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+    
+        const portfolioWithPriorityNumeric = result.map((portfolio) => ({
+          ...portfolio,
+          priority: Number(portfolio.priority),
+        }));
+    
+        const total = await portfolioCollection.countDocuments(query);
+        const totalPages = Math.ceil(total / limit);
+    
+        res.send({
+          page,
+          limit,
+          total,
+          totalPages,
+          portfolio: portfolioWithPriorityNumeric,
+        });
+      } catch (err) {
+        console.log("Error fetching portfolio data ", err);
+        res.status(500).json({ message: "Internal server error" });
+      }
     });
+    
     app.delete("/portfolio/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -396,45 +440,43 @@ app.get("/singleServices", async (req, res) => {
       res.send(result);
     });
 
-    app.get("/about/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await aboutCollection.findOne(filter);
+    app.get("/portfolio/:id", async (req, res) => {
+      const review = req.body;
+      const result = await portfolioCollection.findOne(review);
       res.send(result);
     });
 
-    app.put("/about/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newAboutItem = req.body;
-      console.log(newAboutItem);
-      const options = { upsert: true };
-      const updateAboutItem = {
-        $set: {
-          title: newAboutItem.title,
-          subtitle: newAboutItem.subtitle,
-          managementName: newAboutItem.managementName,
-          position: newAboutItem.position,
-          managmentdescription: newAboutItem.managmentdescription,
-          missionDescription: newAboutItem.missionDescription,
-          vissionDescription: newAboutItem.vissionDescription,
-          teamName: newAboutItem.teamName,
-          teamPosition: newAboutItem.teamPosition,
-          image: newAboutItem.image,
-          description: newAboutItem.r,
-          teamDescriptions: newAboutItem.teamDescriptions,
-        },
-      };
+    app.put("/portfolio/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newPortfolio = req.body;
 
-      const services = await aboutCollection.updateOne(
-        filter,
-        updateAboutItem,
-        options
-      );
-      res.send(services);
+        const updatePortfolio = {
+          $set: {
+            category: newPortfolio.category,
+            title: newPortfolio.title,
+            priority: newPortfolio.priority,
+            description: newPortfolio.description,
+            image: newPortfolio.image,
+            link: newPortfolio.link,
+          },
+        };
+
+        const result = await portfolioCollection.updateOne(filter, updatePortfolio, {
+          upsert: true,
+        });
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Portfolio not found" });
+        }
+
+        res.send({ message: "Portfolio updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
     });
-
- 
 
     // User Registration
     app.post("/register", async (req, res) => {
@@ -500,7 +542,6 @@ app.get("/singleServices", async (req, res) => {
       });
     });
 
-
     app.post("/message", async (req, res) => {
       const newMessage = req.body;
 
@@ -511,7 +552,6 @@ app.get("/singleServices", async (req, res) => {
         res.status(500).json(err);
       }
     });
-   
 
     app.get("/message/all", async (req, res) => {
       try {
