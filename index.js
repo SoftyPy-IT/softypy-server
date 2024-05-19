@@ -125,18 +125,7 @@ async function run() {
       );
       res.send(services);
     });
-    //  signle services api
-    // app.get("/singleServices", async (req, res) => {
-    //   console.log(req.query)
-    //   const result = await singleServiceCollection.find().limit(5).toArray();
-    //   const serviceWithNumericPriority = result.map(service=>({
-    //     ...service,
-    //     priority: Number(service.priority)
-    //   }))
-    //   console.log(serviceWithNumericPriority)
 
-    //   res.send(serviceWithNumericPriority);
-    // });
 
     app.get("/singleServices", async (req, res) => {
       try {
@@ -281,26 +270,56 @@ async function run() {
     });
 
     // review api
-    app.get("/reviews", async (req, res) => {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-      const search = req.query.search || "";
-    
-      try {
-        const query = search
-          ? { $or: [{ name: new RegExp(search, "i") }, { title: new RegExp(search, "i") }] }
-          : {};
-    
-        const total = await reviewCollection.countDocuments(query);
-        const reviews = await reviewCollection.find(query).skip(skip).limit(limit).toArray();
-        res.send({ total, reviews, page, pages: Math.ceil(total / limit) });
-      } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal Server Error" });
-      }
+// Assuming you have the necessary imports and setup for Express and MongoDB
+
+app.get("/reviews", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 5 ;
+  const skip = (page - 1 ) * limit;
+  const result = await reviewCollection.find().skip(skip).limit(limit).toArray()
+  const total = await reviewCollection.countDocuments();
+  const totalPages = Math.ceil(total/limit);
+
+  res.send({
+    total,page,totalPages, limit, reviews: result
+  })
+  
+});
+app.get("/singleServices", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+    const result = await singleServiceCollection
+      .find()
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const servicesWithNumericPriority = result.map((service) => ({
+      ...service,
+      priority: Number(service.priority),
+    }));
+
+    // Get the total count of documents
+    const total = await singleServiceCollection.countDocuments();
+
+    // Calculate the total number of pages
+    const totalPages = Math.ceil(total / limit);
+
+    // Send the paginated result along with metadata
+    res.send({
+      total,
+      page,
+      totalPages,
+      limit,
+      services: servicesWithNumericPriority,
     });
-    
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    res.status(500).send({ message: "Internal Server Error" });
+  }
+});
+
     
        
     app.get("/reviews/:id", async (req, res) => {
@@ -361,13 +380,13 @@ async function run() {
     
 
     // about content related api
-    app.post("/about", async (req, res) => {
+    app.post("/portfolio", async (req, res) => {
       const about = req.body;
-      const result = await aboutCollection.insertOne(about);
+      const result = await portfolioCollection.insertOne(about);
       res.send(result);
     });
-    app.get("/about", async (req, res) => {
-      const result = await aboutCollection.find().toArray();
+    app.get("/portfolio", async (req, res) => {
+      const result = await portfolioCollection.find().toArray();
       res.send(result);
     });
     app.delete("/about/:id", async (req, res) => {
@@ -415,49 +434,7 @@ async function run() {
       res.send(services);
     });
 
-    // package api
-    app.get("/packages", async (req, res) => {
-      const result = await packageCollection.find().toArray();
-      res.send(result);
-    });
-    app.post("/packages", async (req, res) => {
-      const package = req.body;
-      const result = await packageCollection.insertOne(package);
-      res.send(result);
-    });
-    app.delete("/packages/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await packageCollection.deleteOne(filter);
-      res.send(result);
-    });
-    app.put("/packages/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const newService = req.body;
-      console.log(newService);
-      const options = { upsert: true };
-      const updatedService = {
-        $set: {
-          name: newService.name,
-          title: newService.title,
-          subtitle: newService.subtitle,
-          topservicetitle: newService.topservicetitle,
-          topserviceDescription: newService.topserviceDescription,
-          whatWedoDescription: newService.whatWedoDescription,
-          productsDescription: newService.productsDescription,
-          image: newService.image,
-          description: newService.description,
-        },
-      };
-
-      const services = await portfolioCollection.updateOne(
-        filter,
-        updatedService,
-        options
-      );
-      res.send(services);
-    });
+ 
 
     // User Registration
     app.post("/register", async (req, res) => {
