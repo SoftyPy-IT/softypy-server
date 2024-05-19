@@ -389,10 +389,10 @@ app.get("/singleServices", async (req, res) => {
       const result = await portfolioCollection.find().toArray();
       res.send(result);
     });
-    app.delete("/about/:id", async (req, res) => {
+    app.delete("/portfolio/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const result = await aboutCollection.deleteOne(filter);
+      const result = await portfolioCollection.deleteOne(filter);
       res.send(result);
     });
 
