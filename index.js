@@ -385,18 +385,18 @@ async function run() {
     // about content related api
     app.post("/portfolio", async (req, res) => {
       const about = req.body;
+      console.log(req.body);
       const result = await portfolioCollection.insertOne(about);
       res.send(result);
     });
 
-
     app.get("/portfolio", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) 
         const search = req.query.search || "";
         const skip = (page - 1) * limit;
-    
+
         const query = search
           ? {
               $or: [
@@ -405,21 +405,22 @@ async function run() {
               ],
             }
           : {};
-    
+
         const result = await portfolioCollection
           .find(query)
           .skip(skip)
           .limit(limit)
           .toArray();
-    
+
         const portfolioWithPriorityNumeric = result.map((portfolio) => ({
           ...portfolio,
           priority: Number(portfolio.priority),
         }));
-    
+        portfolioWithPriorityNumeric.sort((a,b)=>(a.priority - b.priority))
+
         const total = await portfolioCollection.countDocuments(query);
         const totalPages = Math.ceil(total / limit);
-    
+
         res.send({
           page,
           limit,
@@ -432,7 +433,7 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    
+
     app.delete("/portfolio/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -456,16 +457,20 @@ async function run() {
           $set: {
             category: newPortfolio.category,
             title: newPortfolio.title,
+            link: newPortfolio.link,
             priority: newPortfolio.priority,
             description: newPortfolio.description,
             image: newPortfolio.image,
-            link: newPortfolio.link,
           },
         };
 
-        const result = await portfolioCollection.updateOne(filter, updatePortfolio, {
-          upsert: true,
-        });
+        const result = await portfolioCollection.updateOne(
+          filter,
+          updatePortfolio,
+          {
+            upsert: true,
+          }
+        );
 
         if (result.matchedCount === 0) {
           return res.status(404).send({ message: "Portfolio not found" });
