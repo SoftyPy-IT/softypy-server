@@ -9,19 +9,22 @@ const { Server } = require("socket.io");
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
+const bodyParser = require("body-parser");
+// middleware
 // middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase the payload size limit to 10MB
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true })); // Increase for urlencoded payloads
+
 
 const server = http.createServer(app);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-// const uri = `mongodb://localhost:27017/softypy`;
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -73,6 +76,8 @@ async function run() {
       .collection("conversation");
     const messageCollection = client.db("softypy").collection("message");
     const userCollection = client.db("softypy").collection("users");
+    const employeeCollection = client.db("softypy").collection("employee");
+    const blogCollection = client.db("softypy").collection("blog");
 
     // services related api
     app.get("/services", async (req, res) => {
@@ -126,6 +131,7 @@ async function run() {
       res.send(services);
     });
 
+    // single services api 
     app.get("/singleServices", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -269,8 +275,6 @@ async function run() {
     });
 
     // review api
-    // Assuming you have the necessary imports and setup for Express and MongoDB
-
     app.get("/reviews", async (req, res) => {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 5;
@@ -393,7 +397,7 @@ async function run() {
     app.get("/portfolio", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) 
+        const limit = parseInt(req.query.limit);
         const search = req.query.search || "";
         const skip = (page - 1) * limit;
 
@@ -416,7 +420,7 @@ async function run() {
           ...portfolio,
           priority: Number(portfolio.priority),
         }));
-        portfolioWithPriorityNumeric.sort((a,b)=>(a.priority - b.priority))
+        portfolioWithPriorityNumeric.sort((a, b) => a.priority - b.priority);
 
         const total = await portfolioCollection.countDocuments(query);
         const totalPages = Math.ceil(total / limit);
@@ -482,6 +486,128 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
+    // blog api
+    app.post("/blog", async (req, res) => {
+      const blog = req.body;
+      console.log(req.body);
+      const result = await blogCollection.insertOne(blog);
+      res.send(result);
+    });
+
+    app.get("/blog", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit);
+        const search = req.query.search || "";
+        const skip = (page - 1) * limit;
+
+        const query = search
+          ? {
+              $or: [
+                { title: { $regex: search, $options: "i" } },
+                { category: { $regex: search, $options: "i" } },
+              ],
+            }
+          : {};
+
+        const result = await blogCollection
+          .find(query)
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        const blogWithPriorityNumeric = result.map((blog) => ({
+          ...blog,
+          priority: Number(blog.priority),
+        }));
+        blogWithPriorityNumeric.sort((a, b) => a.priority - b.priority);
+
+        const total = await blogCollection.countDocuments(query);
+        const totalPages = Math.ceil(total / limit);
+
+        res.send({
+          page,
+          limit,
+          total,
+          totalPages,
+          blog: blogWithPriorityNumeric,
+        });
+      } catch (err) {
+        console.log("Error fetching portfolio data ", err);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.delete("/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await blogCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    app.get("/blog/:id", async (req, res) => {
+      const review = req.body;
+      const result = await portfolioCollection.findOne(review);
+      res.send(result);
+    });
+
+    app.put("/portfolio/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newPortfolio = req.body;
+
+        const updatePortfolio = {
+          $set: {
+            category: newPortfolio.category,
+            title: newPortfolio.title,
+            link: newPortfolio.link,
+            priority: newPortfolio.priority,
+            description: newPortfolio.description,
+            image: newPortfolio.image,
+          },
+        };
+
+        const result = await portfolioCollection.updateOne(
+          filter,
+          updatePortfolio,
+          {
+            upsert: true,
+          }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Portfolio not found" });
+        }
+
+        res.send({ message: "Portfolio updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+    // employ api 
+    app.get("/employee", async (req, res) => {
+      const service = await employeeCollection.find().limit(5).toArray();
+      res.send(service);
+    });
+
+    app.get("/employee/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await serviceCollection.findOne(filter);
+      res.send(result);
+    });
+    app.post("/employee", async (req, res) => {
+      const employee = req.body;
+      const result = await employeeCollection.insertOne(employee);
+      res.send(result);
+    });
+  
 
     // User Registration
     app.post("/register", async (req, res) => {
