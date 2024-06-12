@@ -543,12 +543,12 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await blogCollection.deleteOne(filter);
-      res.send(result);
+      res.send(result);        
     });
 
     app.get("/blog/:id", async (req, res) => {
-      const review = req.body;
-      const result = await portfolioCollection.findOne(review);
+      const blog = req.body;
+      const result = await blogCollection.findOne(blog);
       res.send(result);
     });
 
