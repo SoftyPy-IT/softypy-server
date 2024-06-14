@@ -13,17 +13,14 @@ const bodyParser = require("body-parser");
 // middleware
 // middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Increase the payload size limit to 10MB
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true })); // Increase for urlencoded payloads
-
+app.use(express.json({ limit: "10mb" })); // Increase the payload size limit to 10MB
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true })); // Increase for urlencoded payloads
 
 const server = http.createServer(app);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fomplst.mongodb.net/?retryWrites=true&w=majority`;
-
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -131,7 +128,7 @@ async function run() {
       res.send(services);
     });
 
-    // single services api 
+    // single services api
     app.get("/singleServices", async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -227,29 +224,6 @@ async function run() {
       }
     });
 
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const newSingleServices = req.body;
-    //   console.log(newSingleServices);
-    //   const options = { upsert: true };
-    //   const updatedSingleServices = {
-    //     $set: {
-    //       name: newSingleServices.name,
-    //       category: newSingleServices.category,
-    //       title: newSingleServices.title,
-    //       subtitle: newSingleServices.subtitle,
-    //       image: newSingleServices.image,
-    //       description: newSingleServices.description,
-    //     },
-    //   };
-
-    //   const services = await singleServiceCollection.updateOne(
-    //     filter,
-    //     updatedSingleServices,
-    //     options
-    //   );
-    //   res.send(services);
-    // });
     app.delete("/singleservices/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -547,8 +521,8 @@ async function run() {
     });
 
     app.get("/blog/:id", async (req, res) => {
-      const blog = req.body;
-      const result = await blogCollection.findOne(blog);
+      const blogs = req.body;
+      const result = await blogCollection.findOne(blogs);
       res.send(result);
     });
 
@@ -588,9 +562,7 @@ async function run() {
       }
     });
 
-
-
-    // employ api 
+    // employ api
     app.get("/employee", async (req, res) => {
       const service = await employeeCollection.find().limit(5).toArray();
       res.send(service);
@@ -607,7 +579,6 @@ async function run() {
       const result = await employeeCollection.insertOne(employee);
       res.send(result);
     });
-  
 
     // User Registration
     app.post("/register", async (req, res) => {
