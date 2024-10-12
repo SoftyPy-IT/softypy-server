@@ -30,32 +30,6 @@ const client = new MongoClient(uri, {
   },
 });
 
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
-});
-
-io.on("connection", (socket) => {
-  console.log("socket.id", socket.id);
-
-  socket.on("set-user", (getReceiverId) => {
-    console.log("getReceiverId", getReceiverId);
-    socket.join(getReceiverId);
-  });
-
-  socket.on("send-message", async (message) => {
-    console.log(message);
-    io.to(message.senderId).emit("received-message", message);
-    io.to(message.receiverId).emit("received-message", message);
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`User disconnected`);
-  });
-});
-
 async function run() {
   try {
     await client.connect();
@@ -517,7 +491,7 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await blogCollection.deleteOne(filter);
-      res.send(result);        
+      res.send(result);
     });
 
     app.get("/blog/:id", async (req, res) => {
@@ -564,7 +538,7 @@ async function run() {
 
     // employ api
     app.get("/employee", async (req, res) => {
-      const service = await employeeCollection.find().limit(5).toArray();
+      const service = await employeeCollection.find().limit(100000000000000).toArray();
       res.send(service);
     });
 
@@ -575,8 +549,15 @@ async function run() {
       res.send(result);
     });
     app.post("/employee", async (req, res) => {
+      console.log(req.body);
       const employee = req.body;
       const result = await employeeCollection.insertOne(employee);
+      res.send(result);
+    });
+    app.delete("/employee/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await employeeCollection.deleteOne(filter);
       res.send(result);
     });
 
