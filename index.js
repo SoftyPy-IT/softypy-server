@@ -538,7 +538,10 @@ async function run() {
 
     // employ api
     app.get("/employee", async (req, res) => {
-      const service = await employeeCollection.find().limit(100000000000000).toArray();
+      const service = await employeeCollection
+        .find()
+        .limit(100000000000000)
+        .toArray();
       res.send(service);
     });
 
