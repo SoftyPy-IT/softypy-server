@@ -13,7 +13,7 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.PRIVATE_KEY }}
+          key: ${{ secrets.PRATE_KEY }}
           port: ${{ secrets.PORT }}
           script: |
             # Navigate to the project directory
@@ -26,8 +26,15 @@ jobs:
             npm install
             
             
-            # Restart the app with PM2 (replace 'server.js' with your app's entry point)
-            pm2 restart server.js --name softypy-server || pm2 start server.js --name softypy-server
+            # Check if the PM2 process is already running and manage accordingly
+            if pm2 describe softypy-server > /dev/null; then
+              echo "Restarting softypy-server..."
+              pm2 restart softypy-server
+            else
+              echo "Starting softypy-server..."
+              pm2 start npm --name "softypy-server" -- run start
+            fi
             
             # Save the PM2 process list to ensure it restarts on system reboot
             pm2 save
+            
