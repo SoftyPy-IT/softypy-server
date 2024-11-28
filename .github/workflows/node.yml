@@ -1,7 +1,9 @@
 name: Node.js CD
+
 on:
   push:
     branches: [main]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,6 +16,18 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
           script: |
+            # Navigate to the project directory
             cd /var/www/html/softypy-server
+            
+            # Pull the latest changes from the main branch
             git pull origin main
+            
+            # Install/update dependencies
             npm install
+            
+            
+            # Restart the app with PM2 (replace 'server.js' with your app's entry point)
+            pm2 restart server.js --name softypy-server || pm2 start server.js --name softypy-server
+            
+            # Save the PM2 process list to ensure it restarts on system reboot
+            pm2 save
